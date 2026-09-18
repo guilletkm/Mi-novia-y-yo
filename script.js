@@ -75,9 +75,9 @@ document.addEventListener('mousemove', (e) => {
 // Catálogo amplio de canciones románticas para el buscador
 const bibliotecaRomantica = [
     {
-        titulo: "Mi Persona Favorita",
-        artista: "Alejandro Sanz & Camila Cabello",
-        url: "https://www.youtube.com/watch?v=W4AiOKlOO0Q"
+        titulo: "Te Estoy Correteando",
+        artista: "LATIN MAFIA & Fred again..",
+        url: "https://www.youtube.com/watch?v=PIVr5H9EShI"
     },
     {
         titulo: "Until I Found You",
@@ -93,6 +93,11 @@ const bibliotecaRomantica = [
         titulo: "Yellow",
         artista: "Coldplay",
         url: "https://www.youtube.com/watch?v=yKNxeF4KMsY"
+    },
+    {
+        titulo: "Golden Hour",
+        artista: "JVKE",
+        url: "https://www.youtube.com/watch?v=PEM0Vs8jf1w"
     },
     {
         titulo: "Creo en Ti",
@@ -115,16 +120,6 @@ const bibliotecaRomantica = [
         url: "https://www.youtube.com/watch?v=450p7goxZqg"
     },
     {
-        titulo: "Día de Enero",
-        artista: "Shakira",
-        url: "https://www.youtube.com/watch?v=BPidLpADlaM"
-    },
-    {
-        titulo: "Golden Hour",
-        artista: "JVKE",
-        url: "https://www.youtube.com/watch?v=lp-EO5I60KA"
-    },
-    {
         titulo: "Thinking Out Loud",
         artista: "Ed Sheeran",
         url: "https://www.youtube.com/watch?v=lp-EO5I60KA"
@@ -133,10 +128,11 @@ const bibliotecaRomantica = [
 
 // Lista de reproducción activa
 let canciones = [
-    bibliotecaRomantica[0],
-    bibliotecaRomantica[1],
-    bibliotecaRomantica[2],
-    bibliotecaRomantica[3]
+    bibliotecaRomantica[0], // Te Estoy Correteando
+    bibliotecaRomantica[1], // Until I Found You
+    bibliotecaRomantica[2], // Perfect
+    bibliotecaRomantica[3], // Yellow
+    bibliotecaRomantica[4]  // Golden Hour
 ];
 
 let indiceActual = 0;
@@ -303,7 +299,13 @@ function renderizarLetras(lineas) {
 async function cargarLetrasParaCancion(cancion) {
     if (!lyricsContainer) return;
     const info = typeof cancion === 'object' ? cancion : { titulo: "Canción", artista: "" };
-    const claveCache = `${info.titulo}_${info.artista}`.toLowerCase();
+    
+    // Limpiar nombre para mejor búsqueda de letra
+    let tituloLimpio = info.titulo.replace(/\(.*?\)|\[.*?\]/g, '').replace(/video oficial|official video|audio|letra|lyrics/gi, '').trim();
+    let artistaLimpio = info.artista.replace(/\(.*?\)|\[.*?\]/g, '').trim();
+    if (artistaLimpio.toLowerCase() === 'youtube') artistaLimpio = '';
+
+    const claveCache = `${tituloLimpio}_${artistaLimpio}`.toLowerCase();
 
     if (cacheLetras[claveCache]) {
         renderizarLetras(cacheLetras[claveCache]);
@@ -313,7 +315,10 @@ async function cargarLetrasParaCancion(cancion) {
     lyricsContainer.innerHTML = '<div class="lyric-line placeholder">Buscando letra interactiva... 🎤</div>';
 
     try {
-        const res = await fetch(`https://lrclib.net/api/get?track_name=${encodeURIComponent(info.titulo)}&artist_name=${encodeURIComponent(info.artista)}`);
+        let url = `https://lrclib.net/api/get?track_name=${encodeURIComponent(tituloLimpio)}`;
+        if (artistaLimpio) url += `&artist_name=${encodeURIComponent(artistaLimpio)}`;
+        
+        const res = await fetch(url);
         if (res.ok) {
             const data = await res.json();
             if (data && data.syncedLyrics) {
@@ -340,20 +345,40 @@ if (lyricsToggleBtn && lyricsPanel) {
 }
 
 // ==========================================
-// BUSCADOR DE CANCIONES
+// BUSCADOR EN VIVO (BIBLIOTECA + YOUTUBE ONLINE)
 // ==========================================
+let debounceTimer = null;
+let currentSearchQuery = '';
+
 function renderizarResultadosBusqueda(filtro = '') {
     if (!searchResultsList) return;
     searchResultsList.innerHTML = '';
-    const query = filtro.trim().toLowerCase();
+    const query = filtro.trim();
+    const queryLower = query.toLowerCase();
 
-    // Si es un enlace de YouTube
+    if (!query) {
+        // Mostrar lista recomendada si está vacío
+        const header = document.createElement('div');
+        header.className = 'search-section-header';
+        header.innerText = 'Canciones recomendadas:';
+        searchResultsList.appendChild(header);
+
+        bibliotecaRomantica.forEach(cancion => {
+            const itemDiv = crearItemBusqueda(cancion.titulo, cancion.artista, false, () => {
+                reproducirNuevaCancion(cancion);
+            });
+            searchResultsList.appendChild(itemDiv);
+        });
+        return;
+    }
+
+    // 1. Si es un enlace directo de YouTube
     if (query.includes('youtube.com') || query.includes('youtu.be') || /^[a-zA-Z0-9_-]{11}$/.test(query)) {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'search-item';
         itemDiv.innerHTML = `
             <div class="search-item-info">
-                <span class="search-item-title">▶ Reproducir enlace directo</span>
+                <span class="search-item-title">▶ Reproducir enlace de YouTube</span>
                 <span class="search-item-artist">${query}</span>
             </div>
             <span class="search-item-play">▶</span>
@@ -364,56 +389,129 @@ function renderizarResultadosBusqueda(filtro = '') {
                 artista: "Personalizado",
                 url: query
             });
-            if (searchPanel) searchPanel.classList.add('hidden');
-            if (searchToggleBtn) searchToggleBtn.classList.remove('active');
+            cerrarBuscador();
         });
         searchResultsList.appendChild(itemDiv);
         return;
     }
 
-    // Filtrar canciones de la biblioteca
+    // 2. Coincidencias locales de la biblioteca
     const coincidencias = bibliotecaRomantica.filter(c => 
-        c.titulo.toLowerCase().includes(query) || c.artista.toLowerCase().includes(query)
+        c.titulo.toLowerCase().includes(queryLower) || c.artista.toLowerCase().includes(queryLower)
     );
 
-    if (coincidencias.length === 0) {
-        const noResult = document.createElement('div');
-        noResult.className = 'search-item';
-        noResult.innerHTML = `
-            <div class="search-item-info">
-                <span class="search-item-title">Buscar "${filtro}" en YouTube</span>
-                <span class="search-item-artist">Copia el enlace del video y pégalo aquí</span>
-            </div>
-            <span class="search-item-play">🔗</span>
-        `;
-        noResult.addEventListener('click', () => {
-            window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(filtro)}`, '_blank');
+    if (coincidencias.length > 0) {
+        const header = document.createElement('div');
+        header.className = 'search-section-header';
+        header.innerText = 'En la biblioteca:';
+        searchResultsList.appendChild(header);
+
+        coincidencias.forEach(cancion => {
+            const itemDiv = crearItemBusqueda(cancion.titulo, cancion.artista, false, () => {
+                reproducirNuevaCancion(cancion);
+            });
+            searchResultsList.appendChild(itemDiv);
         });
-        searchResultsList.appendChild(noResult);
-        return;
     }
 
-    coincidencias.forEach(cancion => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'search-item';
-        itemDiv.innerHTML = `
-            <div class="search-item-info">
-                <span class="search-item-title">${cancion.titulo}</span>
-                <span class="search-item-artist">${cancion.artista}</span>
-            </div>
-            <span class="search-item-play">▶</span>
-        `;
-        itemDiv.addEventListener('click', () => {
-            reproducirNuevaCancion(cancion);
-            if (searchPanel) searchPanel.classList.add('hidden');
-            if (searchToggleBtn) searchToggleBtn.classList.remove('active');
-        });
-        searchResultsList.appendChild(itemDiv);
+    // 3. Búsqueda online en YouTube
+    if (query.length >= 2) {
+        const loadingItem = document.createElement('div');
+        loadingItem.className = 'search-item loading-item';
+        loadingItem.id = 'yt-search-loading';
+        loadingItem.innerHTML = `<span>Buscando "${query}" en YouTube... ⏳</span>`;
+        searchResultsList.appendChild(loadingItem);
+
+        clearTimeout(debounceTimer);
+        currentSearchQuery = query;
+        debounceTimer = setTimeout(() => {
+            realizarBusquedaYouTube(query);
+        }, 400);
+    }
+}
+
+async function realizarBusquedaYouTube(query) {
+    if (query !== currentSearchQuery) return;
+    const loadingEl = document.getElementById('yt-search-loading');
+
+    try {
+        const res = await fetch(`https://invidious.f5.si/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
+        if (!res.ok) throw new Error('Error al conectar con YouTube');
+        const data = await res.json();
+
+        if (query !== currentSearchQuery) return;
+        if (loadingEl) loadingEl.remove();
+
+        const videos = (Array.isArray(data) ? data : []).filter(v => v.type === 'video' || v.videoId).slice(0, 6);
+
+        if (videos.length > 0) {
+            const ytHeader = document.createElement('div');
+            ytHeader.className = 'search-section-header';
+            ytHeader.innerText = 'Resultados de YouTube:';
+            searchResultsList.appendChild(ytHeader);
+
+            videos.forEach(v => {
+                const duracion = v.lengthSeconds ? ` · ${formatearTiempo(v.lengthSeconds)}` : '';
+                const itemDiv = crearItemBusqueda(v.title, `${v.author || 'YouTube'}${duracion}`, true, () => {
+                    reproducirNuevaCancion({
+                        titulo: v.title,
+                        artista: v.author || "YouTube",
+                        url: `https://www.youtube.com/watch?v=${v.videoId}`
+                    });
+                });
+                searchResultsList.appendChild(itemDiv);
+            });
+        } else if (searchResultsList.children.length === 0) {
+            mostrarOpcionExterna(query);
+        }
+    } catch (e) {
+        console.warn("Aviso búsqueda en vivo:", e);
+        if (loadingEl) loadingEl.remove();
+        if (searchResultsList.querySelectorAll('.search-item').length === 0) {
+            mostrarOpcionExterna(query);
+        }
+    }
+}
+
+function mostrarOpcionExterna(query) {
+    const noResult = document.createElement('div');
+    noResult.className = 'search-item';
+    noResult.innerHTML = `
+        <div class="search-item-info">
+            <span class="search-item-title">Buscar "${query}" en YouTube</span>
+            <span class="search-item-artist">Toca para abrir YouTube y copiar el enlace</span>
+        </div>
+        <span class="search-item-play">🔗</span>
+    `;
+    noResult.addEventListener('click', () => {
+        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, '_blank');
     });
+    searchResultsList.appendChild(noResult);
+}
+
+function crearItemBusqueda(titulo, artista, esYouTube, onClick) {
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'search-item';
+    itemDiv.innerHTML = `
+        <div class="search-item-info">
+            <span class="search-item-title">${esYouTube ? '<span class="search-yt-badge">YT</span>' : ''}${titulo}</span>
+            <span class="search-item-artist">${artista}</span>
+        </div>
+        <span class="search-item-play">▶</span>
+    `;
+    itemDiv.addEventListener('click', () => {
+        onClick();
+        cerrarBuscador();
+    });
+    return itemDiv;
+}
+
+function cerrarBuscador() {
+    if (searchPanel) searchPanel.classList.add('hidden');
+    if (searchToggleBtn) searchToggleBtn.classList.remove('active');
 }
 
 function reproducirNuevaCancion(cancionObj) {
-    // Si ya está en la lista actual, saltar a ella
     let indexExistente = canciones.findIndex(c => extraerVideoId(c) === extraerVideoId(cancionObj));
     if (indexExistente !== -1) {
         cambiarCancion(indexExistente);
@@ -421,6 +519,58 @@ function reproducirNuevaCancion(cancionObj) {
         canciones.push(cancionObj);
         cambiarCancion(canciones.length - 1);
     }
+}
+
+async function buscarYReproducirDirecto(query) {
+    if (!query) return;
+
+    // 1. Enlace de YouTube directo
+    if (query.includes('youtube.com') || query.includes('youtu.be') || /^[a-zA-Z0-9_-]{11}$/.test(query)) {
+        reproducirNuevaCancion({
+            titulo: "Video de YouTube",
+            artista: "Personalizado",
+            url: query
+        });
+        cerrarBuscador();
+        return;
+    }
+
+    // 2. Coincidencia en la biblioteca
+    const matchLocal = bibliotecaRomantica.find(c => 
+        c.titulo.toLowerCase().includes(query.toLowerCase()) || 
+        c.artista.toLowerCase().includes(query.toLowerCase())
+    );
+    if (matchLocal) {
+        reproducirNuevaCancion(matchLocal);
+        cerrarBuscador();
+        return;
+    }
+
+    // 3. Buscar en vivo en YouTube y reproducir el primer resultado
+    if (searchResultsList) {
+        searchResultsList.innerHTML = '<div class="search-item loading-item"><span>Buscando y reproduciendo en YouTube... ⏳</span></div>';
+    }
+
+    try {
+        const res = await fetch(`https://invidious.f5.si/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
+        if (res.ok) {
+            const data = await res.json();
+            const primerVideo = (Array.isArray(data) ? data : []).find(v => v.videoId);
+            if (primerVideo) {
+                reproducirNuevaCancion({
+                    titulo: primerVideo.title,
+                    artista: primerVideo.author || "YouTube",
+                    url: `https://www.youtube.com/watch?v=${primerVideo.videoId}`
+                });
+                cerrarBuscador();
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn(e);
+    }
+
+    mostrarOpcionExterna(query);
 }
 
 if (searchToggleBtn && searchPanel) {
@@ -439,20 +589,16 @@ if (searchInput) {
         renderizarResultadosBusqueda(e.target.value);
     });
     searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && searchInput.value.trim()) {
-            const firstResult = searchResultsList.querySelector('.search-item');
-            if (firstResult) firstResult.click();
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            buscarYReproducirDirecto(searchInput.value.trim());
         }
     });
 }
 
 if (searchGoBtn && searchInput) {
     searchGoBtn.addEventListener('click', () => {
-        const val = searchInput.value.trim();
-        if (val) {
-            const firstResult = searchResultsList.querySelector('.search-item');
-            if (firstResult) firstResult.click();
-        }
+        buscarYReproducirDirecto(searchInput.value.trim());
     });
 }
 

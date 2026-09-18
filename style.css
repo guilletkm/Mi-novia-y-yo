@@ -800,11 +800,11 @@ body {
 }
 
 .search-results-list {
-    max-height: 140px;
+    max-height: 175px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
     padding-right: 4px;
 }
 
@@ -815,6 +815,15 @@ body {
 .search-results-list::-webkit-scrollbar-thumb {
     background: rgba(255, 192, 203, 0.7);
     border-radius: 4px;
+}
+
+.search-section-header {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #ff6b8b;
+    padding: 6px 4px 2px 4px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
 }
 
 .search-item {
@@ -860,6 +869,27 @@ body {
     color: var(--accent-color);
     font-size: 0.85rem;
     margin-left: 6px;
+}
+
+.search-yt-badge {
+    font-size: 0.6rem;
+    background: #ff0000;
+    color: white;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-right: 4px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.loading-item {
+    color: #888;
+    justify-content: center;
+    font-style: italic;
+    cursor: default;
+    background: transparent !important;
+    border: none !important;
 }
 
 /* Pantalla de Video de YouTube */
