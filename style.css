@@ -580,27 +580,146 @@ body {
     opacity: 0.8;
 }
 
-/* --- REPRODUCTOR DE MÚSICA --- */
+/* --- REPRODUCTOR DE MÚSICA CON YOUTUBE --- */
 .music-player {
     position: fixed;
     bottom: 30px;
     right: 30px;
     z-index: 1000;
-    background: white;
-    padding: 15px 25px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(10px);
+    padding: 14px 20px;
     border-radius: 20px; 
-    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-    border: 1px solid rgba(255, 192, 203, 0.5);
+    box-shadow: 0 8px 30px rgba(255, 156, 179, 0.25), 0 2px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 192, 203, 0.6);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    min-width: 260px; /* Más ancho para que quepa la barra */
-    transition: transform 0.3s ease;
+    width: 290px;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
 }
 
 .music-player:hover {
-    transform: translateY(-5px); 
+    transform: translateY(-4px);
+    box-shadow: 0 12px 35px rgba(255, 156, 179, 0.35), 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+/* Encabezado: Título de canción y botón de video */
+.music-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 192, 203, 0.35);
+}
+
+.music-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    flex-grow: 1;
+}
+
+.music-disc-icon {
+    font-size: 1.15rem;
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.music-player.playing .music-disc-icon {
+    animation: rotarDisco 3.5s linear infinite;
+}
+
+@keyframes rotarDisco {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.music-text-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    text-align: left;
+}
+
+.music-song-title {
+    font-family: var(--serif-font);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #444;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+.music-artist-name {
+    font-size: 0.7rem;
+    color: #8f8f8f;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+.mini-btn {
+    font-size: 1.05rem;
+    padding: 3px 6px;
+    border-radius: 8px;
+    opacity: 0.75;
+    background: rgba(255, 192, 203, 0.2);
+    border: 1px solid rgba(255, 192, 203, 0.4);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mini-btn:hover {
+    opacity: 1;
+    background: rgba(255, 192, 203, 0.4);
+    transform: scale(1.1);
+}
+
+.mini-btn.active {
+    background: var(--accent-color);
+    opacity: 1;
+    box-shadow: 0 2px 8px rgba(255, 192, 203, 0.5);
+}
+
+/* Pantalla de YouTube */
+.music-video-container {
+    width: 100%;
+    height: 155px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1.5px solid rgba(255, 192, 203, 0.7);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    background: #111;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.music-video-container iframe,
+.music-video-container #yt-player {
+    width: 100% !important;
+    height: 100% !important;
+    border: none;
+    display: block;
+}
+
+/* Modo minimizado (invisible al ojo pero activo con 2px para que iOS Safari no pause) */
+.music-video-container.minimized {
+    height: 2px;
+    opacity: 0.005;
+    margin-top: -6px;
+    margin-bottom: -4px;
+    pointer-events: none;
+    border: none;
+    box-shadow: none;
+    background: transparent;
 }
 
 /* Fila superior: Tiempos y Barra */
@@ -609,12 +728,12 @@ body {
     align-items: center;
     width: 100%;
     gap: 10px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: var(--text-color);
 }
 
 #progress-bar {
-    flex-grow: 1; /* La barra toma todo el espacio posible */
+    flex-grow: 1;
     height: 4px;
     accent-color: var(--accent-color);
     cursor: pointer;
@@ -640,11 +759,32 @@ body {
 
 .control-btn:hover {
     color: #ff9cb3; 
-    transform: scale(1.1);
+    transform: scale(1.15);
 }
 
 #music-btn {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 192, 203, 0.18);
+    border: 1px solid rgba(255, 192, 203, 0.5);
+    transition: all 0.25s ease;
+}
+
+#music-btn:hover {
+    background: var(--accent-color);
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 3px 12px rgba(255, 192, 203, 0.5);
+}
+
+.music-player.playing #music-btn {
+    background: var(--accent-color);
+    color: white;
 }
 
 #volume-slider {
@@ -652,12 +792,7 @@ body {
     height: 4px;
     accent-color: var(--accent-color); 
     cursor: pointer;
-    margin-left: 10px;
-}
-
-#music-btn:hover {
-    background: var(--accent-color);
-    color: white;
+    margin-left: 5px;
 }
 
 /* --- EFECTO LIGHTBOX (Foto Ampliada) --- */

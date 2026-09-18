@@ -12,12 +12,31 @@
     <div id="cursor-heart"></div>
     
     <div class="music-player">
+        <!-- Encabezado con información de la canción y botón para ver/ocultar video -->
+        <div class="music-header">
+            <div class="music-info">
+                <span class="music-disc-icon">💿</span>
+                <div class="music-text-details">
+                    <span id="music-song-title" class="music-song-title">Cargando canción...</span>
+                    <span id="music-artist-name" class="music-artist-name">YouTube</span>
+                </div>
+            </div>
+            <button id="toggle-video-btn" class="control-btn mini-btn" title="Mostrar video" aria-label="Mostrar/ocultar video">📺</button>
+        </div>
+
+        <!-- Mini pantalla de YouTube (plegable con el botón 📺) -->
+        <div class="music-video-container minimized" id="music-video-container">
+            <div id="yt-player"></div>
+        </div>
+
+        <!-- Barra de progreso -->
         <div class="music-progress">
             <span id="current-time">0:00</span>
             <input type="range" id="progress-bar" min="0" value="0" step="1" aria-label="Progreso">
             <span id="total-time">0:00</span>
         </div>
 
+        <!-- Controles -->
         <div class="music-controls">
             <button id="prev-btn" class="control-btn" aria-label="Anterior">⏮</button>
             <button id="music-btn" class="control-btn" aria-label="Reproducir/Pausar">
@@ -25,10 +44,8 @@
             </button>
             <button id="next-btn" class="control-btn" aria-label="Siguiente">⏭</button>
             
-            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.3" aria-label="Volumen" title="Volumen">
+            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" aria-label="Volumen" title="Volumen">
         </div>
-        
-        <audio id="bg-music"></audio>
     </div>
 
     <header class="hero reveal">
@@ -356,6 +373,7 @@
         </div>
     </div>
 
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script src="script.js"></script>
 </body>
 </html>

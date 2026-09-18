@@ -69,114 +69,266 @@ document.addEventListener('mousemove', (e) => {
 });
 
 // ==========================================
-// 4. REPRODUCTOR DE MÚSICA AVANZADO (Fijo para iPhone)
+// 4. REPRODUCTOR DE MÚSICA DE YOUTUBE
 // ==========================================
+// ¡Aquí puedes agregar o cambiar cualquier canción!
+// Puedes poner solo el enlace de YouTube o un objeto con título y artista:
 const canciones = [
-    "tu-cancion.mp3",
-    "cancion2.mp3",
-    "cancion3.mp3"
-]; 
+    {
+        titulo: "Mi Persona Favorita",
+        artista: "Alejandro Sanz & Camila Cabello",
+        url: "https://www.youtube.com/watch?v=W4AiOKlOO0Q"
+    },
+    {
+        titulo: "Until I Found You",
+        artista: "Stephen Sanchez",
+        url: "https://www.youtube.com/watch?v=GxldQ9eX2wo"
+    },
+    {
+        titulo: "Perfect",
+        artista: "Ed Sheeran",
+        url: "https://www.youtube.com/watch?v=2Vv-BfVoq4g"
+    },
+    {
+        titulo: "Yellow",
+        artista: "Coldplay",
+        url: "https://www.youtube.com/watch?v=yKNxeF4KMsY"
+    }
+];
 
 let indiceActual = 0;
-const audio = document.getElementById('bg-music');
+let player = null;
+let isPlayerReady = false;
+let updateInterval = null;
+let isDragging = false;
+let pendingPlay = false;
+
+// Elementos DOM
+const musicPlayerEl = document.querySelector('.music-player');
 const musicBtn = document.getElementById('music-btn');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
 const icon = document.getElementById('music-icon');
-
 const progressBar = document.getElementById('progress-bar');
 const currentTimeEl = document.getElementById('current-time');
 const totalTimeEl = document.getElementById('total-time');
 const volumeSlider = document.getElementById('volume-slider');
+const songTitleEl = document.getElementById('music-song-title');
+const artistNameEl = document.getElementById('music-artist-name');
+const toggleVideoBtn = document.getElementById('toggle-video-btn');
+const videoContainer = document.getElementById('music-video-container');
 
 // Detectar si es un iPhone/iPad (iOS)
 const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-// Si es iOS, ocultamos el deslizador de volumen porque Apple no permite usarlo
 if (esIOS && volumeSlider) {
     volumeSlider.style.display = 'none';
 }
 
 function formatearTiempo(segundos) {
-    if (isNaN(segundos)) return "0:00";
+    if (isNaN(segundos) || segundos < 0) return "0:00";
     const min = Math.floor(segundos / 60);
     const seg = Math.floor(segundos % 60);
     return `${min}:${seg < 10 ? '0' : ''}${seg}`;
 }
 
-if(audio) {
-    audio.src = canciones[indiceActual];
-    if (!esIOS) audio.volume = volumeSlider.value;
+// Extraer ID del video de YouTube desde cualquier formato de enlace
+function extraerVideoId(cancion) {
+    if (!cancion) return "";
+    let url = typeof cancion === "object" ? cancion.url || "" : cancion;
+    url = url.trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+    return match ? match[1] : url;
+}
 
-    // --- Controles Básicos ---
-    musicBtn.addEventListener('click', () => {
-        if (audio.paused) { 
-            audio.play(); 
-            icon.innerHTML = '⏸'; 
-        } else { 
-            audio.pause(); 
-            icon.innerHTML = '♫'; 
-        }
-    });
+function obtenerInfoCancion(index) {
+    const item = canciones[index];
+    if (!item) return { titulo: "Nuestra Canción", artista: "YouTube" };
+    if (typeof item === "object") {
+        return {
+            titulo: item.titulo || "Nuestra Canción",
+            artista: item.artista || "YouTube"
+        };
+    }
+    return { titulo: `Canción ${index + 1}`, artista: "YouTube" };
+}
 
-    nextBtn.addEventListener('click', () => {
-        indiceActual = (indiceActual + 1) % canciones.length; 
-        audio.src = canciones[indiceActual];
-        audio.play();
-        icon.innerHTML = '⏸';
-    });
+function actualizarInfoUI() {
+    const info = obtenerInfoCancion(indiceActual);
+    if (songTitleEl) songTitleEl.innerText = info.titulo;
+    if (artistNameEl) artistNameEl.innerText = info.artista;
+}
 
-    prevBtn.addEventListener('click', () => {
-        indiceActual = (indiceActual - 1 + canciones.length) % canciones.length;
-        audio.src = canciones[indiceActual];
-        audio.play();
-        icon.innerHTML = '⏸';
-    });
-
-    volumeSlider.addEventListener('input', (e) => {
-        if (!esIOS) audio.volume = e.target.value;
-    });
-
-    audio.addEventListener('ended', () => {
-        nextBtn.click();
-    });
-
-    // --- Lógica de la Barra de Progreso (Bala de Plata para IPHONE) ---
+// Inicialización de la API de YouTube
+window.onYouTubeIframeAPIReady = function() {
+    actualizarInfoUI();
+    const primerId = extraerVideoId(canciones[indiceActual]);
     
-    let isDragging = false;
-
-    audio.addEventListener('loadedmetadata', () => {
-        progressBar.max = audio.duration;
-        totalTimeEl.innerText = formatearTiempo(audio.duration);
-    });
-
-    // Solo avanza sola si NO tienes el dedo puesto
-    audio.addEventListener('timeupdate', () => {
-        if (!isDragging) {
-            progressBar.value = audio.currentTime;
-            currentTimeEl.innerText = formatearTiempo(audio.currentTime);
+    player = new YT.Player('yt-player', {
+        videoId: primerId,
+        playerVars: {
+            'autoplay': 0,
+            'controls': 0,
+            'playsinline': 1, // Crucial para móviles (evita pantalla completa automática)
+            'rel': 0,
+            'modestbranding': 1,
+            'enablejsapi': 1,
+            'origin': window.location.origin
+        },
+        events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange,
+            'onError': onPlayerError
         }
     });
+};
 
-    // Cuando tocas y arrastras
+function onPlayerReady() {
+    isPlayerReady = true;
+    if (volumeSlider && !esIOS) {
+        player.setVolume(volumeSlider.value * 100);
+    }
+    actualizarInfoUI();
+
+    if (pendingPlay) {
+        pendingPlay = false;
+        player.playVideo();
+    }
+}
+
+function onPlayerStateChange(event) {
+    if (event.data === YT.PlayerState.PLAYING) {
+        if (icon) icon.innerHTML = '⏸';
+        if (musicPlayerEl) musicPlayerEl.classList.add('playing');
+        iniciarSeguimientoProgreso();
+
+        // Si el título es genérico y YouTube nos da los metadatos reales
+        try {
+            const videoData = player.getVideoData ? player.getVideoData() : null;
+            if (videoData && videoData.title && typeof canciones[indiceActual] === 'string') {
+                if (songTitleEl) songTitleEl.innerText = videoData.title;
+                if (artistNameEl) artistNameEl.innerText = videoData.author || "YouTube";
+            }
+        } catch (e) {
+            // Ignorar si el navegador restringe acceso a videoData
+        }
+    } else if (event.data === YT.PlayerState.PAUSED) {
+        if (icon) icon.innerHTML = '♫';
+        if (musicPlayerEl) musicPlayerEl.classList.remove('playing');
+        detenerSeguimientoProgreso();
+    } else if (event.data === YT.PlayerState.ENDED) {
+        detenerSeguimientoProgreso();
+        siguienteCancion();
+    }
+}
+
+function onPlayerError(error) {
+    console.warn("Aviso al reproducir video de YouTube:", error);
+    // Si un video tiene restricciones, pasa automáticamente al siguiente
+    siguienteCancion();
+}
+
+function cambiarCancion(nuevoIndice) {
+    indiceActual = (nuevoIndice + canciones.length) % canciones.length;
+    actualizarInfoUI();
+    const videoId = extraerVideoId(canciones[indiceActual]);
+    if (player && isPlayerReady && player.loadVideoById) {
+        player.loadVideoById(videoId);
+    }
+}
+
+function siguienteCancion() {
+    cambiarCancion(indiceActual + 1);
+}
+
+function anteriorCancion() {
+    cambiarCancion(indiceActual - 1);
+}
+
+// Botones de control
+if (musicBtn) {
+    musicBtn.addEventListener('click', () => {
+        if (!player || !isPlayerReady) {
+            pendingPlay = true;
+            return;
+        }
+        const state = player.getPlayerState ? player.getPlayerState() : -1;
+        if (state === YT.PlayerState.PLAYING) {
+            player.pauseVideo();
+        } else {
+            player.playVideo();
+        }
+    });
+}
+
+if (nextBtn) nextBtn.addEventListener('click', siguienteCancion);
+if (prevBtn) prevBtn.addEventListener('click', anteriorCancion);
+
+// Seguimiento del progreso y tiempo transcurrido
+function iniciarSeguimientoProgreso() {
+    detenerSeguimientoProgreso();
+    updateInterval = setInterval(() => {
+        if (player && isPlayerReady && typeof player.getCurrentTime === 'function') {
+            const currentTime = player.getCurrentTime() || 0;
+            const duration = player.getDuration() || 0;
+            
+            if (!isDragging && duration > 0) {
+                progressBar.max = duration;
+                progressBar.value = currentTime;
+                if (currentTimeEl) currentTimeEl.innerText = formatearTiempo(currentTime);
+                if (totalTimeEl) totalTimeEl.innerText = formatearTiempo(duration);
+            }
+        }
+    }, 400);
+}
+
+function detenerSeguimientoProgreso() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+        updateInterval = null;
+    }
+}
+
+// Control manual del control deslizante de progreso
+if (progressBar) {
     progressBar.addEventListener('input', () => {
         isDragging = true;
-        currentTimeEl.innerText = formatearTiempo(progressBar.value);
+        if (currentTimeEl) currentTimeEl.innerText = formatearTiempo(progressBar.value);
     });
 
-    // LA SOLUCIÓN: Una función estricta para cuando sueltas el dedo
     const soltarBarra = () => {
-        if (isDragging) {
-            // El "Number()" es vital porque el iPhone a veces lo lee como texto y se traba
-            audio.currentTime = Number(progressBar.value); 
+        if (isDragging && player && isPlayerReady && typeof player.seekTo === 'function') {
+            player.seekTo(Number(progressBar.value), true);
             isDragging = false;
         }
     };
 
-    // Le disparamos la función con todos los métodos posibles para que el iPhone no se escape
     progressBar.addEventListener('change', soltarBarra);
-    progressBar.addEventListener('touchend', soltarBarra); // Específico para pantallas táctiles
-    progressBar.addEventListener('mouseup', soltarBarra);  // Para el mouse en PC
+    progressBar.addEventListener('touchend', soltarBarra);
+    progressBar.addEventListener('mouseup', soltarBarra);
+}
+
+// Control de volumen
+if (volumeSlider) {
+    volumeSlider.addEventListener('input', (e) => {
+        if (player && isPlayerReady && typeof player.setVolume === 'function') {
+            player.setVolume(e.target.value * 100);
+            if (player.isMuted()) player.unMute();
+        }
+    });
+}
+
+// Botón para desplegar / ocultar la mini pantalla de video
+if (toggleVideoBtn && videoContainer) {
+    toggleVideoBtn.addEventListener('click', () => {
+        videoContainer.classList.toggle('minimized');
+        toggleVideoBtn.classList.toggle('active');
+        if (videoContainer.classList.contains('minimized')) {
+            toggleVideoBtn.title = "Mostrar video";
+        } else {
+            toggleVideoBtn.title = "Ocultar video";
+        }
+    });
 }
 
 // ==========================================
