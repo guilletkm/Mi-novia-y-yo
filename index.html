@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Para Mi Persona Favorita</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300&family=Playfair+Display:ital,wght@0,400;1,500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300&family=Playfair+Display:ital,wght@0,400;1,500&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
 
     <div id="cursor-heart"></div>
-    
-    <div class="music-player">
-        <!-- Encabezado con información de la canción y botón para ver/ocultar video -->
+
+    <div class="music-player" id="main-music-player">
+        <!-- Encabezado con información de la canción y barra de acciones -->
         <div class="music-header">
             <div class="music-info">
                 <span class="music-disc-icon">💿</span>
@@ -21,12 +25,39 @@
                     <span id="music-artist-name" class="music-artist-name">YouTube</span>
                 </div>
             </div>
-            <button id="toggle-video-btn" class="control-btn mini-btn" title="Mostrar video" aria-label="Mostrar/ocultar video">📺</button>
+            <div class="music-header-actions">
+                <button type="button" id="search-toggle-btn" class="control-btn mini-btn" title="Buscar canción o poner link" aria-label="Buscar canción">🔍</button>
+                <button type="button" id="lyrics-toggle-btn" class="control-btn mini-btn" title="Ver letra / Karaoke interactivo" aria-label="Karaoke">🎤</button>
+                <div class="video-size-controls">
+                    <button type="button" id="video-min-btn" class="control-btn size-btn" title="Ocultar pantalla de video" aria-label="Ocultar video">➖</button>
+                    <button type="button" id="video-normal-btn" class="control-btn size-btn active" title="Video tamaño normal" aria-label="Tamaño normal">🔲</button>
+                    <button type="button" id="video-max-btn" class="control-btn size-btn" title="Agrandar video" aria-label="Agrandar video">🗖</button>
+                </div>
+            </div>
         </div>
 
-        <!-- Mini pantalla de YouTube (plegable con el botón 📺) -->
-        <div class="music-video-container minimized" id="music-video-container">
+        <!-- Buscador de canciones y sugerencias -->
+        <div class="music-search-panel hidden" id="music-search-panel">
+            <div class="search-input-wrapper">
+                <input type="text" id="music-search-input" placeholder="Escribe una canción o pega un enlace de YouTube..." autocomplete="off">
+                <button type="button" id="music-search-go-btn" class="search-go-btn" title="Reproducir">▶</button>
+            </div>
+            <div class="search-results-list" id="search-results-list"></div>
+        </div>
+
+        <!-- Pantalla de Video YouTube (admite minimized, normal, expanded) -->
+        <div class="music-video-container normal" id="music-video-container">
             <div id="yt-player"></div>
+        </div>
+
+        <!-- Panel de Letras Sincronizadas / Karaoke Interactivo -->
+        <div class="music-lyrics-panel hidden" id="music-lyrics-panel">
+            <div class="lyrics-header">
+                <span>🎤 Letra Interactiva (Toca cualquier verso para ir a esa parte)</span>
+            </div>
+            <div class="lyrics-scroll-container" id="lyrics-container">
+                <div class="lyric-line placeholder">Cargando letra... ✨</div>
+            </div>
         </div>
 
         <!-- Barra de progreso -->
@@ -43,8 +74,9 @@
                 <span id="music-icon">♫</span>
             </button>
             <button id="next-btn" class="control-btn" aria-label="Siguiente">⏭</button>
-            
-            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" aria-label="Volumen" title="Volumen">
+
+            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" aria-label="Volumen"
+                title="Volumen">
         </div>
     </div>
 
@@ -52,7 +84,7 @@
         <div class="hero-content">
             <h1>Para el amor de mi vida.</h1>
             <p>Un pequeño momento para nosotros.</p>
-            
+
             <div id="counter-container" class="reveal">
                 <p>El tiempo que llevamos juntos mi vida :3</p>
                 <div id="timer"></div>
@@ -63,21 +95,21 @@
     <section class="gallery reveal" id="galeria">
         <h2 class="section-title">Nuestros Momentos</h2>
         <div class="polaroid-grid">
-            
+
             <a href="#img1" class="polaroid-wrapper">
                 <div class="polaroid">
                     <img src="imagenes/foto1.jpg" alt="Foto 1">
                     <p class="caption">El inicio de todo</p>
                 </div>
             </a>
-    
+
             <a href="#img2" class="polaroid-wrapper">
                 <div class="polaroid">
                     <img src="imagenes/foto2.jpg" alt="Foto 2">
                     <p class="caption">Juntos somos felices</p>
                 </div>
             </a>
-    
+
             <a href="#img3" class="polaroid-wrapper">
                 <div class="polaroid">
                     <img src="imagenes/foto3.jpg" alt="Foto 3">
@@ -154,7 +186,7 @@
                     <p class="caption">nuestras llamadas son únicas 😘</p>
                 </div>
             </a>
-            
+
         </div>
     </section>
 
@@ -166,10 +198,13 @@
         <div class="diary-container">
             <!-- Barra de navegación entre páginas del diario -->
             <div class="diary-nav">
-                <button type="button" id="diary-prev-btn" class="diary-nav-btn" title="Página anterior">❮ Anterior</button>
+                <button type="button" id="diary-prev-btn" class="diary-nav-btn" title="Página anterior">❮
+                    Anterior</button>
                 <span id="diary-page-indicator" class="diary-page-indicator">Página 1 de 1</span>
-                <button type="button" id="diary-next-btn" class="diary-nav-btn" title="Página siguiente">Siguiente ❯</button>
-                <button type="button" id="diary-new-btn" class="diary-action-btn diary-btn-new" title="Escribir en una página nueva">+ Nueva Página</button>
+                <button type="button" id="diary-next-btn" class="diary-nav-btn" title="Página siguiente">Siguiente
+                    ❯</button>
+                <button type="button" id="diary-new-btn" class="diary-action-btn diary-btn-new"
+                    title="Escribir en una página nueva">+ Nueva Página</button>
             </div>
 
             <!-- Libreta / Cuaderno del diario -->
@@ -199,10 +234,12 @@
 
                 <!-- Contenido de la hoja del diario -->
                 <div class="diary-sheet">
-                    <input type="text" id="diary-title-input" class="diary-title-input" placeholder="Título de hoy... (ej. Una tarde inolvidable)" maxlength="80">
+                    <input type="text" id="diary-title-input" class="diary-title-input"
+                        placeholder="Título de hoy... (ej. Una tarde inolvidable)" maxlength="80">
                     <div class="diary-text-container">
-                        <textarea id="diary-content-input" class="diary-content-input" rows="8" placeholder="Querido diario, hoy quiero recordarte lo mucho que te amo... escribe aquí todo lo que sientas ✨"></textarea>
-                        
+                        <textarea id="diary-content-input" class="diary-content-input" rows="8"
+                            placeholder="Querido diario, hoy quiero recordarte lo mucho que te amo... escribe aquí todo lo que sientas ✨"></textarea>
+
                         <!-- Capa donde se posicionan los stickers agregados -->
                         <div id="diary-stickers-layer" class="diary-stickers-layer"></div>
                     </div>
@@ -225,16 +262,19 @@
                         <button type="button" class="sticker-opt" data-sticker="📸" title="Agregar foto">📸</button>
                         <button type="button" class="sticker-opt" data-sticker="🧁" title="Agregar cupcake">🧁</button>
                     </div>
-                    <small class="stickers-hint">💡 Haz clic en cualquier sticker para pegarlo. Toca un sticker en la hoja para quitarlo.</small>
+                    <small class="stickers-hint">Haz clic en cualquier sticker para pegarlo. Toca un sticker en la hoja
+                        para quitarlo.</small>
                 </div>
 
                 <!-- Pie del diario: Guardar y eliminar -->
                 <div class="diary-footer">
-                    <button type="button" id="diary-delete-btn" class="diary-action-btn diary-btn-delete" title="Eliminar esta página">🗑️ Borrar página</button>
-                    <button type="button" id="diary-save-btn" class="diary-action-btn diary-btn-save" title="Guardar este recuerdo en el diario">💾 Guardar Recuerdo 💕</button>
+                    <button type="button" id="diary-delete-btn" class="diary-action-btn diary-btn-delete"
+                        title="Eliminar esta página">Borrar página</button>
+                    <button type="button" id="diary-save-btn" class="diary-action-btn diary-btn-save"
+                        title="Guardar este recuerdo en el diario">Guardar Recuerdo 💕</button>
                 </div>
             </div>
-            
+
             <div id="diary-toast" class="diary-toast">¡Recuerdo guardado con amor! 💖</div>
         </div>
     </section>
@@ -264,7 +304,7 @@
             <p class="lightbox-caption">Cuando comenzamos esta bonita relación</p>
         </div>
     </div>
-    
+
     <div class="lightbox" id="img2">
         <a href="#!" class="lightbox-close"></a>
         <div class="lightbox-content">
@@ -273,7 +313,7 @@
             <p class="lightbox-caption">Siempre me sacas una sonrisa mi bebé</p>
         </div>
     </div>
-    
+
     <div class="lightbox" id="img3">
         <a href="#!" class="lightbox-close"></a>
         <div class="lightbox-content">
@@ -376,4 +416,5 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="script.js"></script>
 </body>
+
 </html>
